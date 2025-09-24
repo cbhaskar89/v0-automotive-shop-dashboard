@@ -45,6 +45,8 @@ import {
   Zap,
   Brain,
   Filter,
+  FileSignature,
+  Wrench,
 } from "lucide-react"
 import { AlertCircle } from "lucide-react" // Import AlertCircle
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -65,6 +67,7 @@ import {
   Cell,
 } from "recharts"
 import { Calendar, GitBranch, MapPin, RefreshCw, TrendingDown, MessageSquare } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface ChartContainerProps extends React.HTMLAttributes<HTMLDivElement> {
   config: Record<string, { label: string; color: string }>
@@ -186,8 +189,15 @@ export default function ClaimsPage() {
   const [claimTitle, setClaimTitle] = useState("")
   const [vin, setVin] = useState("")
   const [lucidId, setLucidId] = useState("")
-  const [mileage, setMileage] = useState("")
-  const [repairDate, setRepairDate] = useState("")
+  const [mileageIn, setMileageIn] = useState("") // Changed from mileage
+  const [mileageOut, setMileageOut] = useState("") // Changed from mileage
+  const [repairStartDate, setRepairStartDate] = useState("") // Changed from repairDate
+  const [repairEndDate, setRepairEndDate] = useState("") // Changed from repairDate
+  const [mobileService, setMobileService] = useState(false) // Added
+  const [jobCode, setJobCode] = useState("") // Added
+  const [operationCode, setOperationCode] = useState("") // Added
+  const [showOperationCodeDropdown, setShowOperationCodeDropdown] = useState(false) // Added
+  const [causalPart, setCausalPart] = useState("") // Added
   const [claimDescription, setClaimDescription] = useState("")
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [parts, setParts] = useState<Array<{ id: string; partNumber: string; quantity: number; unitPrice: number }>>([])
@@ -799,7 +809,7 @@ export default function ClaimsPage() {
       return "This claim cannot be escalated as it is rejected."
     }
     if (claim.status === "Info Required") {
-      return "This claim cannot be escalated as OEM needs more information."
+      return "This claim cannot be escalated as it is rejected."
     }
     if (claim.status === "Approved") {
       return "This claim cannot be escalated as it has already been approved."
@@ -1089,8 +1099,11 @@ export default function ClaimsPage() {
     if (!claimType) newErrors.claimType = "Claim type is required"
     if (!claimTitle) newErrors.claimTitle = "Claim title is required"
     if (!vin) newErrors.vin = "VIN is required"
-    if (!mileage) newErrors.mileage = "Mileage is required"
-    if (!repairDate) newErrors.repairDate = "Repair date is required"
+    if (!mileageIn) newErrors.mileageIn = "Mileage IN is required" // Updated validation
+    if (!mileageOut) newErrors.mileageOut = "Mileage OUT is required" // Updated validation
+    if (!repairStartDate) newErrors.repairStartDate = "Repair start date is required" // Updated validation
+    if (!repairEndDate) newErrors.repairEndDate = "Repair end date is required" // Updated validation
+    if (!jobCode) newErrors.jobCode = "Job Code is required" // Added validation
     if (!claimDescription) newErrors.claimDescription = "Claim description is required"
 
     const vinMismatchError = validateVinLucidIdMatch()
@@ -1172,8 +1185,14 @@ export default function ClaimsPage() {
     setClaimTitle("")
     setVin("")
     setLucidId("")
-    setMileage("")
-    setRepairDate("")
+    setMileageIn("") // Reset new fields
+    setMileageOut("") // Reset new fields
+    setRepairStartDate("") // Reset new fields
+    setRepairEndDate("") // Reset new fields
+    setMobileService(false) // Reset new fields
+    setJobCode("") // Reset new fields
+    setOperationCode("") // Reset new fields
+    setCausalPart("") // Reset new fields
     setClaimDescription("")
     setUploadedFiles([])
     setParts([])
@@ -1307,6 +1326,18 @@ export default function ClaimsPage() {
     }, 3000)
   }
 
+  // Operation Code handlers
+  const handleOperationCodeChange = (value: string) => {
+    setOperationCode(value)
+    setShowOperationCodeDropdown(value.length > 0)
+  }
+
+  const handleOperationCodeSelect = (code: string) => {
+    setOperationCode(code)
+    setShowOperationCodeDropdown(false)
+    // Optionally, you could fetch and pre-fill labor details here based on the selected Op Code
+  }
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
@@ -1350,19 +1381,49 @@ export default function ClaimsPage() {
                       <SelectItem value="warranty" className="hover:bg-slate-50">
                         <div className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
-                          Warranty Claim
+                          Warranty
                         </div>
                       </SelectItem>
-                      <SelectItem value="goodwill" className="hover:bg-slate-50">
+                      <SelectItem value="warranty-mobile-travel" className="hover:bg-slate-50">
                         <div className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
-                          Goodwill Claim
+                          Warranty Mobile Travel
                         </div>
                       </SelectItem>
-                      <SelectItem value="recall" className="hover:bg-slate-50">
+                      <SelectItem value="campaigns" className="hover:bg-slate-50">
                         <div className="flex items-center gap-2">
                           <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
-                          Recall Claim
+                          Campaigns
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="spare-parts-accessories-warranty" className="hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                          Spare parts/accessories warranty
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="rectify" className="hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                          Rectify
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="transportation-damage" className="hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                          Transportation damage
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="pre-delivery-inspection" className="hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                          Pre-Delivery Inspection
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="pre-delivery-inspection-used" className="hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 bg-slate-600 rounded-full"></div>
+                          Pre-Delivery Inspection (Used Car)
                         </div>
                       </SelectItem>
                     </SelectContent>
@@ -1383,7 +1444,7 @@ export default function ClaimsPage() {
                     id="claimTitle"
                     value={claimTitle}
                     onChange={(e) => setClaimTitle(e.target.value)}
-                    placeholder="Brief description of the issue"
+                    placeholder="Enter descriptive title for the claim"
                     className={`h-10 border transition-colors ${errors.claimTitle ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
                   />
                   {errors.claimTitle && (
@@ -1449,7 +1510,7 @@ export default function ClaimsPage() {
                       value={vin}
                       onChange={(e) => handleVinInputChange(e.target.value)}
                       onFocus={() => setShowVinDropdown(vin.length > 0)}
-                      placeholder="Enter VIN or select from suggestions"
+                      placeholder="Vehicle Identification Number"
                       className={`h-10 border transition-colors font-mono ${errors.vin ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
                     />
                     {showVinDropdown && (
@@ -1505,7 +1566,7 @@ export default function ClaimsPage() {
                         setErrors((prev) => ({ ...prev, lucidId: "" }))
                       }
                     }}
-                    placeholder="Enter Lucid ID"
+                    placeholder="Internal Lucid vehicle ID"
                     className={`h-10 border transition-colors ${errors.lucidId ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
                     list="lucid-suggestions"
                   />
@@ -1523,59 +1584,235 @@ export default function ClaimsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="mileage" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Mileage *
+                  <Label htmlFor="mileageIn" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Mileage IN *
                   </Label>
                   <Input
-                    id="mileage"
+                    id="mileageIn"
                     type="number"
-                    value={mileage}
-                    onChange={(e) => setMileage(e.target.value)}
-                    placeholder="Current vehicle mileage"
-                    className={`h-10 border transition-colors ${errors.mileage ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
+                    value={mileageIn}
+                    onChange={(e) => setMileageIn(e.target.value)}
+                    placeholder="Check-in mileage"
+                    className={`h-10 border transition-colors ${errors.mileageIn ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
                   />
-                  {errors.mileage && (
+                  {errors.mileageIn && (
                     <p className="text-xs text-red-500 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errors.mileage}
+                      {errors.mileageIn}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="repairDate" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Repair Date *
+                  <Label htmlFor="mileageOut" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Mileage OUT *
                   </Label>
                   <Input
-                    id="repairDate"
-                    type="date"
-                    value={repairDate}
-                    onChange={(e) => setRepairDate(e.target.value)}
-                    className={`h-10 border transition-colors ${errors.repairDate ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
+                    id="mileageOut"
+                    type="number"
+                    value={mileageOut}
+                    onChange={(e) => setMileageOut(e.target.value)}
+                    placeholder="Check-out mileage"
+                    className={`h-10 border transition-colors ${errors.mileageOut ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
                   />
-                  {errors.repairDate && (
+                  {errors.mileageOut && (
                     <p className="text-xs text-red-500 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
-                      {errors.repairDate}
+                      {errors.mileageOut}
                     </p>
                   )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="repairStartDate" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Repair Start Date *
+                  </Label>
+                  <Input
+                    id="repairStartDate"
+                    type="date"
+                    value={repairStartDate}
+                    onChange={(e) => setRepairStartDate(e.target.value)}
+                    className={`h-10 border transition-colors ${errors.repairStartDate ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
+                  />
+                  {errors.repairStartDate && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.repairStartDate}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="repairEndDate" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Repair End Date *
+                  </Label>
+                  <Input
+                    id="repairEndDate"
+                    type="date"
+                    value={repairEndDate}
+                    onChange={(e) => setRepairEndDate(e.target.value)}
+                    className={`h-10 border transition-colors ${errors.repairEndDate ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
+                  />
+                  {errors.repairEndDate && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.repairEndDate}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="mobileService"
+                      checked={mobileService}
+                      onCheckedChange={(checked) => setMobileService(checked as boolean)}
+                    />
+                    <Label htmlFor="mobileService" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Mobile Service
+                    </Label>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="jobCode" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Job Code Entry *
+                  </Label>
+                  <Select value={jobCode} onValueChange={setJobCode}>
+                    <SelectTrigger
+                      className={`h-10 border transition-colors ${errors.jobCode ? "border-red-400 bg-red-50" : "border-slate-300 hover:border-slate-400 focus:border-slate-500"}`}
+                    >
+                      <SelectValue placeholder="Select job code" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-200">
+                      <SelectItem value="JC001" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">JC001</span>
+                          <span className="text-xs text-slate-500">Battery System Diagnosis</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="JC002" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">JC002</span>
+                          <span className="text-xs text-slate-500">Motor Assembly Replacement</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="JC003" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">JC003</span>
+                          <span className="text-xs text-slate-500">Charging System Repair</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="JC004" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">JC004</span>
+                          <span className="text-xs text-slate-500">Software Update Installation</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="JC005" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">JC005</span>
+                          <span className="text-xs text-slate-500">Interior Component Replacement</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {errors.jobCode && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {errors.jobCode}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="operationCode" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Parts & Operation Code (Op Code)
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="operationCode"
+                      value={operationCode}
+                      onChange={(e) => handleOperationCodeChange(e.target.value)}
+                      onFocus={() => setShowOperationCodeDropdown(operationCode.length > 0)}
+                      placeholder="Enter operation code"
+                      className="h-10 border transition-colors border-slate-300 hover:border-slate-400 focus:border-slate-500"
+                    />
+                    {showOperationCodeDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded shadow-lg max-h-48 overflow-auto">
+                        {opCodes
+                          .filter(
+                            (code) =>
+                              code.code.toLowerCase().includes(operationCode.toLowerCase()) ||
+                              code.description.toLowerCase().includes(operationCode.toLowerCase()),
+                          )
+                          .map((code) => (
+                            <button
+                              key={code.code}
+                              type="button"
+                              className="w-full px-3 py-2 text-left hover:bg-slate-50 focus:bg-slate-50 focus:outline-none border-b border-slate-100 last:border-b-0 transition-colors"
+                              onClick={() => handleOperationCodeSelect(code.code)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-mono text-sm">{code.code}</span>
+                                <div className="p-0.5 bg-slate-100 rounded">
+                                  <Wrench className="h-3 w-3 text-slate-600" />
+                                </div>
+                              </div>
+                              <div className="text-xs text-slate-500 mt-0.5">{code.description}</div>
+                            </button>
+                          ))}
+                        {opCodes.filter(
+                          (code) =>
+                            code.code.toLowerCase().includes(operationCode.toLowerCase()) ||
+                            code.description.toLowerCase().includes(operationCode.toLowerCase()),
+                        ).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-slate-500">No matching operation codes found</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="causalPart" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Causal Part Selection
+                  </Label>
+                  <Select value={causalPart} onValueChange={setCausalPart}>
+                    <SelectTrigger className="h-10 border transition-colors border-slate-300 hover:border-slate-400 focus:border-slate-500">
+                      <SelectValue placeholder="Link affected part number" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-200">
+                      <SelectItem value="BP001" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">BP001</span>
+                          <span className="text-xs text-slate-500">Battery Pack Module</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="MT002" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">MT002</span>
+                          <span className="text-xs text-slate-500">Drive Motor Assembly</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="CH003" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">CH003</span>
+                          <span className="text-xs text-slate-500">Charging Port Assembly</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="IN004" className="hover:bg-slate-50">
+                        <div className="flex flex-col">
+                          <span className="font-medium text-sm">IN004</span>
+                          <span className="text-xs text-slate-500">Infotainment Display</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="concern" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    Concern
-                  </Label>
-                  <Textarea
-                    id="concern"
-                    value={concern}
-                    onChange={(e) => setConcern(e.target.value)}
-                    placeholder="Describe the customer's concern or complaint..."
-                    className="min-h-[80px] border transition-colors resize-none border-slate-300 hover:border-slate-400 focus:border-slate-500"
-                  />
-                </div>
-
                 <div className="space-y-1.5">
                   <Label htmlFor="cause" className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     Cause
@@ -1585,6 +1822,19 @@ export default function ClaimsPage() {
                     value={cause}
                     onChange={(e) => setCause(e.target.value)}
                     placeholder="Identify the root cause of the issue..."
+                    className="min-h-[80px] border transition-colors resize-none border-slate-300 hover:border-slate-400 focus:border-slate-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="concern" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Concern
+                  </Label>
+                  <Textarea
+                    id="concern"
+                    value={concern}
+                    onChange={(e) => setConcern(e.target.value)}
+                    placeholder="Describe the customer's concern or complaint..."
                     className="min-h-[80px] border transition-colors resize-none border-slate-300 hover:border-slate-400 focus:border-slate-500"
                   />
                 </div>
@@ -1617,7 +1867,6 @@ export default function ClaimsPage() {
                 {errors.claimDescription && (
                   <p className="text-xs text-red-500 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
-
                     {errors.claimDescription}
                   </p>
                 )}
@@ -1854,7 +2103,7 @@ export default function ClaimsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
                   <CardContent className="flex flex-col items-center justify-center p-6">
                     <div className="p-3 bg-slate-600 rounded-full mb-3 group-hover:bg-slate-700 transition-colors">
@@ -1912,6 +2161,25 @@ export default function ClaimsPage() {
                       onChange={handleFileUpload}
                     />
                     <p className="text-xs text-slate-500 text-center">PDF, invoices, records</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
+                  <CardContent className="flex flex-col items-center justify-center p-6">
+                    <div className="p-3 bg-slate-600 rounded-full mb-3 group-hover:bg-slate-700 transition-colors">
+                      <FileSignature className="h-5 w-5 text-white" />
+                    </div>
+                    <Label htmlFor="signature" className="cursor-pointer font-medium text-slate-700 mb-1">
+                      Customer Signature
+                    </Label>
+                    <Input
+                      id="signature"
+                      type="file"
+                      accept="image/*,.pdf"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                    <p className="text-xs text-slate-500 text-center">Acknowledgement, signature</p>
                   </CardContent>
                 </Card>
               </div>
@@ -2608,180 +2876,6 @@ export default function ClaimsPage() {
             </DialogContent>
           </Dialog>
         </TabsContent>
-
-        <Dialog open={!!selectedActionClaim} onOpenChange={() => setSelectedActionClaim(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
-                Action Required - {selectedActionClaim?.id}
-              </DialogTitle>
-              <DialogDescription>Review the details and complete the required action for this claim</DialogDescription>
-            </DialogHeader>
-
-            {selectedActionClaim && (
-              <div className="space-y-6">
-                {/* Claim Overview */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Claim Overview</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Claim ID</label>
-                        <p className="font-semibold">{selectedActionClaim.id}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">VIN</label>
-                        <p className="font-semibold">{selectedActionClaim.vin}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Lucid ID</label>
-                        <p className="font-semibold">{selectedActionClaim.lucidId}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Claim Type</label>
-                        <p className="font-semibold">{selectedActionClaim.claimType}</p>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Submission Date</label>
-                        <p>{selectedActionClaim.submissionDate}</p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Deadline</label>
-                        <p className={selectedActionClaim.status === "Overdue" ? "text-red-600 font-medium" : ""}>
-                          {selectedActionClaim.deadline}
-                        </p>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-muted-foreground">Status</label>
-                        <Badge
-                          variant={
-                            selectedActionClaim.status === "Overdue"
-                              ? "destructive"
-                              : selectedActionClaim.status === "Pending"
-                                ? "secondary"
-                                : "default"
-                          }
-                        >
-                          {selectedActionClaim.status}
-                          {selectedActionClaim.status === "Overdue" && ` (${selectedActionClaim.daysOverdue} days)`}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Action Required */}
-                <Card className="border-amber-200 bg-amber-50">
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <AlertTriangle className="h-5 w-5 text-amber-600" />
-                      Action Required
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Requested by</label>
-                      <p className="font-semibold">{selectedActionClaim.requestedBy}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Action Required</label>
-                      <p className="font-semibold">{selectedActionClaim.pendingAction}</p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Details</label>
-                      <p className="text-sm bg-white p-3 rounded border">{selectedActionClaim.actionDetails}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Action Form */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Complete Action</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {selectedActionClaim.actionType === "photo_upload" && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium">Upload Photos</label>
-                          <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                            <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-600">Click to upload or drag and drop photos</p>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Cost Breakdown</label>
-                          <textarea
-                            className="mt-1 w-full p-3 border rounded-md"
-                            rows={4}
-                            placeholder="Provide detailed cost breakdown..."
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {selectedActionClaim.actionType === "text_response" && (
-                      <div>
-                        <label className="text-sm font-medium">Response</label>
-                        <textarea
-                          className="mt-1 w-full p-3 border rounded-md"
-                          rows={6}
-                          placeholder="Provide detailed repair description and timeline..."
-                        />
-                      </div>
-                    )}
-
-                    {selectedActionClaim.actionType === "document_upload" && (
-                      <div className="space-y-4">
-                        <div>
-                          <label className="text-sm font-medium">Upload Documents</label>
-                          <div className="mt-2 border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                            <p className="mt-2 text-sm text-gray-600">Click to upload or drag and drop documents</p>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium">Additional Notes</label>
-                          <textarea
-                            className="mt-1 w-full p-3 border rounded-md"
-                            rows={3}
-                            placeholder="Any additional information..."
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex gap-3 pt-4">
-                      <Button className="flex-1" onClick={handleSubmitResponse}>
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Submit Response
-                      </Button>
-                      <Button variant="outline" onClick={handleRequestExtension}>
-                        <Clock className="h-4 w-4 mr-2" />
-                        Request Extension
-                      </Button>
-                    </div>
-
-                    {actionSuccessMessage && (
-                      <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          <span className="text-green-800 font-medium">{actionSuccessMessage}</span>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
 
         <TabsContent value="actions-pending" className="space-y-6">
           <Card className="shadow-sm">

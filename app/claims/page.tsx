@@ -20,11 +20,8 @@ import {
   XCircle,
   DollarSign,
   Camera,
-  Video,
-  FileImage,
   Plus,
   Upload,
-  X,
   ChevronRight,
   Save,
   Send,
@@ -45,8 +42,8 @@ import {
   Zap,
   Brain,
   Filter,
-  FileSignature,
   Wrench,
+  PenTool,
 } from "lucide-react"
 import { AlertCircle } from "lucide-react" // Import AlertCircle
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -1329,7 +1326,7 @@ export default function ClaimsPage() {
   // Operation Code handlers
   const handleOperationCodeChange = (value: string) => {
     setOperationCode(value)
-    setShowOperationCodeDropdown(value.length > 0)
+    setShowOperationCodeDropdown(operationCode.length > 0)
   }
 
   const handleOperationCodeSelect = (code: string) => {
@@ -1466,7 +1463,7 @@ export default function ClaimsPage() {
                       onChange={(e) => handleFseCaseInputChange(e.target.value)}
                       onFocus={() => setShowFseCaseDropdown(fseCaseId.length > 0)}
                       placeholder="Select or type FSE Case ID"
-                      className="h-10 border transition-colors border-slate-300 hover:border-slate-400 focus:border-slate-500 font-mono"
+                      className="h-10 border transition-colors border-slate-300 hover:border-slate-400 focus:border-slate-500"
                     />
                     {showFseCaseDropdown && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded shadow-lg max-h-48 overflow-auto">
@@ -2090,136 +2087,128 @@ export default function ClaimsPage() {
             </CardContent>
           </Card>
 
+          {/* CHANGE: Adding missing file upload sections after Parts & Labor card */}
           <Card className="border border-slate-200 bg-white dark:bg-slate-900 shadow-sm">
-            <CardHeader className="bg-gradient-to-r from-slate-600 to-slate-700 text-white py-4">
+            <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-800 text-white py-4">
               <CardTitle className="flex items-center gap-2 text-lg font-medium">
                 <div className="p-1.5 bg-white/10 rounded">
-                  <Upload className="h-4 w-4" />
+                  <Camera className="h-4 w-4" />
                 </div>
-                Attachments Upload
+                Photo & Video Upload
               </CardTitle>
               <CardDescription className="text-slate-300 text-sm">
-                Upload supporting documents, images, and videos
+                Upload images and videos related to the claim
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    <div className="p-3 bg-slate-600 rounded-full mb-3 group-hover:bg-slate-700 transition-colors">
-                      <Camera className="h-5 w-5 text-white" />
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Photos & Videos</Label>
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors relative">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-3 bg-slate-100 rounded-full">
+                      <Camera className="h-6 w-6 text-slate-600" />
                     </div>
-                    <Label htmlFor="photos" className="cursor-pointer font-medium text-slate-700 mb-1">
-                      Upload Photos
-                    </Label>
-                    <Input
-                      id="photos"
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <p className="text-xs text-slate-500 text-center">Damage photos, repair proof</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    <div className="p-3 bg-slate-600 rounded-full mb-3 group-hover:bg-slate-700 transition-colors">
-                      <Video className="h-5 w-5 text-white" />
+                    <div className="text-sm text-slate-600">
+                      <span className="font-medium">Click to upload</span> or drag and drop
                     </div>
-                    <Label htmlFor="videos" className="cursor-pointer font-medium text-slate-700 mb-1">
-                      Upload Videos
-                    </Label>
-                    <Input
-                      id="videos"
-                      type="file"
-                      multiple
-                      accept="video/*"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <p className="text-xs text-slate-500 text-center">Installation proof</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    <div className="p-3 bg-slate-600 rounded-full mb-3 group-hover:bg-slate-700 transition-colors">
-                      <FileImage className="h-5 w-5 text-white" />
-                    </div>
-                    <Label htmlFor="documents" className="cursor-pointer font-medium text-slate-700 mb-1">
-                      Upload Documents
-                    </Label>
-                    <Input
-                      id="documents"
-                      type="file"
-                      multiple
-                      accept=".pdf,.doc,.docx"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <p className="text-xs text-slate-500 text-center">PDF, invoices, records</p>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-2 border-dashed border-slate-300 hover:border-slate-400 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group">
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    <div className="p-3 bg-slate-600 rounded-full mb-3 group-hover:bg-slate-700 transition-colors">
-                      <FileSignature className="h-5 w-5 text-white" />
-                    </div>
-                    <Label htmlFor="signature" className="cursor-pointer font-medium text-slate-700 mb-1">
-                      Customer Signature
-                    </Label>
-                    <Input
-                      id="signature"
-                      type="file"
-                      accept="image/*,.pdf"
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                    <p className="text-xs text-slate-500 text-center">Acknowledgement, signature</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {uploadedFiles.length > 0 && (
-                <div className="space-y-3">
-                  <Label className="text-base font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-slate-600 rounded-full"></div>
-                    Uploaded Files ({uploadedFiles.length})
-                  </Label>
-                  <div className="space-y-2">
-                    {uploadedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-3 border border-slate-200 rounded bg-slate-50 hover:bg-slate-100 transition-colors"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="p-1.5 bg-slate-200 rounded">
-                            <FileText className="h-4 w-4 text-slate-600" />
-                          </div>
-                          <div>
-                            <span className="text-sm font-medium text-slate-700">{file.name}</span>
-                            <Badge variant="secondary" className="ml-2 bg-slate-200 text-slate-600 text-xs">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </Badge>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={() => removeFile(index)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                    <div className="text-xs text-slate-500">PNG, JPG, GIF, MP4, MOV up to 10MB each</div>
                   </div>
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,video/*"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      // Handle file upload logic here
+                      console.log("[v0] Photo/Video files selected:", e.target.files)
+                      handleFileUpload(e) // Call the existing handleFileUpload
+                    }}
+                  />
                 </div>
-              )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-slate-200 bg-white dark:bg-slate-900 shadow-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-800 text-white py-4">
+              <CardTitle className="flex items-center gap-2 text-lg font-medium">
+                <div className="p-1.5 bg-white/10 rounded">
+                  <FileText className="h-4 w-4" />
+                </div>
+                Document Upload
+              </CardTitle>
+              <CardDescription className="text-slate-300 text-sm">
+                Upload PDFs, invoices, and service records
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">Supporting Documents</Label>
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors relative">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-3 bg-slate-100 rounded-full">
+                      <FileText className="h-6 w-6 text-slate-600" />
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <span className="font-medium">Click to upload</span> or drag and drop
+                    </div>
+                    <div className="text-xs text-slate-500">PDF, DOC, DOCX up to 5MB each</div>
+                  </div>
+                  <input
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      // Handle file upload logic here
+                      console.log("[v0] Document files selected:", e.target.files)
+                      handleFileUpload(e) // Call the existing handleFileUpload
+                    }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-slate-200 bg-white dark:bg-slate-900 shadow-sm">
+            <CardHeader className="bg-gradient-to-r from-slate-700 to-slate-800 text-white py-4">
+              <CardTitle className="flex items-center gap-2 text-lg font-medium">
+                <div className="p-1.5 bg-white/10 rounded">
+                  <PenTool className="h-4 w-4" />
+                </div>
+                Customer Acknowledgement
+              </CardTitle>
+              <CardDescription className="text-slate-300 text-sm">
+                Upload customer signature or acknowledgement document
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 p-6">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Signature / Acknowledgement
+                </Label>
+                <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-slate-400 transition-colors relative">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="p-3 bg-slate-100 rounded-full">
+                      <PenTool className="h-6 w-6 text-slate-600" />
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      <span className="font-medium">Click to upload</span> or drag and drop
+                    </div>
+                    <div className="text-xs text-slate-500">PNG, JPG, PDF up to 2MB</div>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    onChange={(e) => {
+                      // Handle file upload logic here
+                      console.log("[v0] Signature file selected:", e.target.files)
+                      handleFileUpload(e) // Call the existing handleFileUpload
+                    }}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -2619,7 +2608,7 @@ export default function ClaimsPage() {
                     </CardContent>
                   </Card>
 
-                  {/* Dynamic Timeline */}
+                  {/* Timeline */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="text-lg">Claim Timeline</CardTitle>

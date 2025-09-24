@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,144 +10,168 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { FileText, Upload, X, Plus, Trash2, Send, Download, CheckCircle, AlertTriangle } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import {
+  Upload,
+  X,
+  Plus,
+  Trash2,
+  Send,
+  CheckCircle,
+  AlertTriangle,
+  Car,
+  Wrench,
+  ClipboardList,
+  PenTool,
+  ChevronDown,
+  ChevronRight,
+} from "lucide-react"
 
 interface Part {
   id: string
-  partNumber: string
-  description: string
+  name: string
   quantity: number
-  unitPrice: number
+}
+
+interface Labor {
+  id: string
+  type: string
+  hours: number
 }
 
 export default function RecordROPage() {
-  const [serviceType, setServiceType] = useState("")
-  const [serviceStartDate, setServiceStartDate] = useState("")
-  const [serviceEndDate, setServiceEndDate] = useState("")
-  const [description, setDescription] = useState("")
-  const [parts, setParts] = useState<Part[]>([])
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
+  // General Information (Upper Section)
+  const [vin, setVin] = useState("")
+  const [softwareVersion, setSoftwareVersion] = useState("")
+  const [odometerIn, setOdometerIn] = useState("")
+  const [odometerOut, setOdometerOut] = useState("")
+  const [faultCodes, setFaultCodes] = useState("")
+  const [diagnosticFile, setDiagnosticFile] = useState<File | null>(null)
+  const [repairStartDate, setRepairStartDate] = useState("")
+  const [repairEndDate, setRepairEndDate] = useState("")
+  const [mobileService, setMobileService] = useState(false)
+  const [signatureFile, setSignatureFile] = useState<File | null>(null)
+
+  const [claimType, setClaimType] = useState<"claims-eligible" | "non-claims-eligible" | null>(null)
+  const [isClaimsEligibleOpen, setIsClaimsEligibleOpen] = useState(false)
+  const [isNonClaimsEligibleOpen, setIsNonClaimsEligibleOpen] = useState(false)
+
+  // Claims Eligible specific fields
+  const [jobCode, setJobCode] = useState("")
+
+  // Common fields for both claim types
+  const [selectedParts, setSelectedParts] = useState<Part[]>([])
+  const [laborEntries, setLaborEntries] = useState<Labor[]>([])
+  const [cause, setCause] = useState("")
+  const [correction, setCorrection] = useState("")
+  const [customerConcern, setCustomerConcern] = useState("")
+
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [generatedROId, setGeneratedROId] = useState("")
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Mock parts catalog for auto-suggestions
-  const partsCatalog = [
-    { number: "LUC-1001-AX", description: "Brake Pad Set Front", price: 180.0 },
-    { number: "LUC-2002-BX", description: "Air Filter Assembly", price: 65.0 },
-    { number: "LUC-3003-CX", description: "Cabin Air Filter", price: 45.0 },
-    { number: "LUC-4004-DX", description: "Wiper Blade Set", price: 85.0 },
-    { number: "LUC-5005-EX", description: "Tire Pressure Sensor", price: 120.0 },
-    { number: "LUC-6006-FX", description: "Door Handle Assembly", price: 275.0 },
-    { number: "LUC-7007-GX", description: "Headlight Bulb", price: 95.0 },
-    { number: "LUC-8008-HX", description: "Battery 12V", price: 220.0 },
+  // Dummy data
+  const vinOptions = ["5UXTA6C07N9B12345", "5YJSA1E26HF000002", "5YJSA1E26HF000003"]
+  const jobCodeOptions = [
+    "JC001 - Battery Replacement",
+    "JC002 - Brake System Repair",
+    "JC003 - Software Update",
+    "JC004 - Charging System Repair",
+    "JC005 - HVAC System Service",
   ]
+  const partsOptions = ["Battery Pack", "Brake Pads", "Air Filter", "Windshield Wipers"]
+  const laborTypes = ["Diagnostic", "Repair", "Replacement", "Inspection"]
 
-  const serviceTypes = [
-    { value: "maintenance", label: "Routine Maintenance" },
-    { value: "repair", label: "General Repair" },
-    { value: "inspection", label: "Safety Inspection" },
-    { value: "diagnostic", label: "Diagnostic Service" },
-    { value: "bodywork", label: "Body Work" },
-    { value: "electrical", label: "Electrical Service" },
-  ]
+  const handleClaimTypeSelect = (type: "claims-eligible" | "non-claims-eligible") => {
+    setClaimType(type)
+    if (type === "claims-eligible") {
+      setIsClaimsEligibleOpen(true)
+      setIsNonClaimsEligibleOpen(false)
+    } else {
+      setIsNonClaimsEligibleOpen(true)
+      setIsClaimsEligibleOpen(false)
+    }
+  }
 
   const addPart = () => {
     const newPart: Part = {
       id: Date.now().toString(),
-      partNumber: "",
-      description: "",
+      name: "",
       quantity: 1,
-      unitPrice: 0,
     }
-    setParts([...parts, newPart])
+    setSelectedParts([...selectedParts, newPart])
   }
 
   const removePart = (id: string) => {
-    setParts(parts.filter((part) => part.id !== id))
+    setSelectedParts(selectedParts.filter((part) => part.id !== id))
   }
 
   const updatePart = (id: string, field: keyof Part, value: string | number) => {
-    setParts(
-      parts.map((part) => {
-        if (part.id === id) {
-          const updatedPart = { ...part, [field]: value }
-
-          // Auto-fill description and price when part number is selected
-          if (field === "partNumber" && typeof value === "string") {
-            const catalogPart = partsCatalog.find((p) => p.number === value)
-            if (catalogPart) {
-              updatedPart.description = catalogPart.description
-              updatedPart.unitPrice = catalogPart.price
-            }
-          }
-
-          return updatedPart
-        }
-        return part
-      }),
-    )
+    setSelectedParts(selectedParts.map((part) => (part.id === id ? { ...part, [field]: value } : part)))
   }
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const addLabor = () => {
+    const newLabor: Labor = {
+      id: Date.now().toString(),
+      type: "",
+      hours: 0,
+    }
+    setLaborEntries([...laborEntries, newLabor])
+  }
+
+  const removeLabor = (id: string) => {
+    setLaborEntries(laborEntries.filter((labor) => labor.id !== id))
+  }
+
+  const updateLabor = (id: string, field: keyof Labor, value: string | number) => {
+    setLaborEntries(laborEntries.map((labor) => (labor.id === id ? { ...labor, [field]: value } : labor)))
+  }
+
+  const handleDiagnosticFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
-      // Validate file type
-      if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-        setErrors({ ...errors, file: "Please upload an Excel file (.xlsx or .xls)" })
+      if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
+        setErrors({ ...errors, diagnosticFile: "Please upload a PDF or image file" })
         return
       }
+      setDiagnosticFile(file)
+      setErrors({ ...errors, diagnosticFile: "" })
+    }
+  }
 
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors({ ...errors, file: "File size must be less than 5MB" })
+  const handleSignatureFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+        setErrors({ ...errors, signatureFile: "Please upload an image or PDF file" })
         return
       }
-
-      setUploadedFile(file)
-      setErrors({ ...errors, file: "" })
-
-      // Mock parsing of Excel file to populate parts
-      setTimeout(() => {
-        const mockPartsFromExcel: Part[] = [
-          {
-            id: "excel-1",
-            partNumber: "LUC-1001-AX",
-            description: "Brake Pad Set Front",
-            quantity: 2,
-            unitPrice: 180.0,
-          },
-          {
-            id: "excel-2",
-            partNumber: "LUC-3003-CX",
-            description: "Cabin Air Filter",
-            quantity: 1,
-            unitPrice: 45.0,
-          },
-        ]
-        setParts(mockPartsFromExcel)
-      }, 1000)
+      setSignatureFile(file)
+      setErrors({ ...errors, signatureFile: "" })
     }
   }
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!serviceType) newErrors.serviceType = "Service type is required"
-    if (!serviceStartDate) newErrors.serviceStartDate = "Service start date is required"
-    if (!serviceEndDate) newErrors.serviceEndDate = "Service end date is required"
-    if (serviceStartDate && serviceEndDate && new Date(serviceStartDate) > new Date(serviceEndDate)) {
-      newErrors.serviceEndDate = "Service end date must be after start date"
+    // General Information validation
+    if (!vin) newErrors.vin = "VIN is required"
+    if (!softwareVersion) newErrors.softwareVersion = "Software version is required"
+    if (!odometerIn) newErrors.odometerIn = "Odometer IN is required"
+    if (!odometerOut) newErrors.odometerOut = "Odometer OUT is required"
+    if (odometerIn && odometerOut && Number.parseInt(odometerIn) >= Number.parseInt(odometerOut)) {
+      newErrors.odometerOut = "Odometer OUT must be greater than Odometer IN"
     }
-    if (!description.trim()) newErrors.description = "Description is required"
-    if (parts.length === 0) newErrors.parts = "At least one part is required"
+    if (!repairStartDate) newErrors.repairStartDate = "Repair start date is required"
+    if (!repairEndDate) newErrors.repairEndDate = "Repair end date is required"
+    if (repairStartDate && repairEndDate && new Date(repairStartDate) > new Date(repairEndDate)) {
+      newErrors.repairEndDate = "Repair end date must be after start date"
+    }
 
-    parts.forEach((part, index) => {
-      if (!part.partNumber) newErrors[`part-${index}-number`] = "Part number is required"
-      if (part.quantity <= 0) newErrors[`part-${index}-quantity`] = "Quantity must be greater than 0"
-      if (part.unitPrice < 0) newErrors[`part-${index}-price`] = "Price cannot be negative"
-    })
+    if (!claimType) newErrors.claimType = "Please select a claim type"
+    if (claimType === "claims-eligible" && !jobCode)
+      newErrors.jobCode = "Job code is required for claims eligible repairs"
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -162,298 +185,499 @@ export default function RecordROPage() {
     setGeneratedROId(roId)
     setShowSuccessModal(true)
 
-    // Reset form
+    // Reset form after delay
     setTimeout(() => {
-      setServiceType("")
-      setServiceStartDate("")
-      setServiceEndDate("")
-      setDescription("")
-      setParts([])
-      setUploadedFile(null)
+      setVin("")
+      setSoftwareVersion("")
+      setOdometerIn("")
+      setOdometerOut("")
+      setFaultCodes("")
+      setDiagnosticFile(null)
+      setRepairStartDate("")
+      setRepairEndDate("")
+      setMobileService(false)
+      setSignatureFile(null)
+      setClaimType(null)
+      setJobCode("")
+      setSelectedParts([])
+      setLaborEntries([])
+      setCause("")
+      setCorrection("")
+      setCustomerConcern("")
+      setIsClaimsEligibleOpen(false)
+      setIsNonClaimsEligibleOpen(false)
       setErrors({})
     }, 2000)
   }
 
-  const calculateTotal = () => {
-    return parts.reduce((total, part) => total + part.quantity * part.unitPrice, 0)
-  }
+  const PartsSection = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium">Consumed / Causal Parts</h4>
+        <Button onClick={addPart} size="sm" variant="outline">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Part
+        </Button>
+      </div>
 
-  const downloadTemplate = () => {
-    // Mock download of Excel template
-    const link = document.createElement("a")
-    link.href = "/templates/record-ro-template.xlsx"
-    link.download = "Record_RO_Template.xlsx"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+      {selectedParts.length === 0 ? (
+        <div className="text-center py-6 text-muted-foreground">
+          <Wrench className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No parts added yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {selectedParts.map((part) => (
+            <div key={part.id} className="flex items-center gap-3 p-3 border rounded-lg">
+              <Select value={part.name} onValueChange={(value) => updatePart(part.id, "name", value)}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select part" />
+                </SelectTrigger>
+                <SelectContent>
+                  {partsOptions.map((partOption) => (
+                    <SelectItem key={partOption} value={partOption}>
+                      {partOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min="1"
+                placeholder="Qty"
+                value={part.quantity}
+                onChange={(e) => updatePart(part.id, "quantity", Number.parseInt(e.target.value) || 1)}
+                className="w-20"
+              />
+              <Button
+                onClick={() => removePart(part.id)}
+                size="sm"
+                variant="ghost"
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const LaborSection = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="font-medium">Labor</h4>
+        <Button onClick={addLabor} size="sm" variant="outline">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Labor
+        </Button>
+      </div>
+
+      {laborEntries.length === 0 ? (
+        <div className="text-center py-6 text-muted-foreground">
+          <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">No labor entries added yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {laborEntries.map((labor) => (
+            <div key={labor.id} className="flex items-center gap-3 p-3 border rounded-lg">
+              <Select value={labor.type} onValueChange={(value) => updateLabor(labor.id, "type", value)}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select labor type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {laborTypes.map((laborType) => (
+                    <SelectItem key={laborType} value={laborType}>
+                      {laborType}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                min="0"
+                step="0.5"
+                placeholder="Hours"
+                value={labor.hours}
+                onChange={(e) => updateLabor(labor.id, "hours", Number.parseFloat(e.target.value) || 0)}
+                className="w-24"
+              />
+              <Button
+                onClick={() => removeLabor(labor.id)}
+                size="sm"
+                variant="ghost"
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const RepairDetailsSection = () => (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="cause">Cause</Label>
+        <Textarea
+          id="cause"
+          placeholder="Battery degraded, not holding charge"
+          value={cause}
+          onChange={(e) => setCause(e.target.value)}
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="correction">Correction</Label>
+        <Textarea
+          id="correction"
+          placeholder="Replaced battery with OEM unit"
+          value={correction}
+          onChange={(e) => setCorrection(e.target.value)}
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="customerConcern">Customer Concern</Label>
+        <Textarea
+          id="customerConcern"
+          placeholder="Vehicle not starting reliably"
+          value={customerConcern}
+          onChange={(e) => setCustomerConcern(e.target.value)}
+          rows={3}
+        />
+      </div>
+    </div>
+  )
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Record RO</h1>
-          <p className="text-muted-foreground">Capture non-warranty repair orders and service records</p>
+          <p className="text-muted-foreground">Comprehensive repair order documentation and tracking</p>
         </div>
         <Badge variant="outline" className="text-sm">
-          Non-Warranty Services
+          Repairer View
         </Badge>
       </div>
 
       <div className="grid gap-6">
-        {/* Service Information */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Service Information
+              <Car className="h-5 w-5" />
+              General Information
             </CardTitle>
-            <CardDescription>Basic service details and description</CardDescription>
+            <CardDescription>Vehicle and repair order details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="serviceType">Service Type *</Label>
-                <Select value={serviceType} onValueChange={setServiceType}>
+                <Label htmlFor="vin">VIN *</Label>
+                <Select value={vin} onValueChange={setVin}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select service type" />
+                    <SelectValue placeholder="Select VIN" />
                   </SelectTrigger>
                   <SelectContent>
-                    {serviceTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
+                    {vinOptions.map((vinOption) => (
+                      <SelectItem key={vinOption} value={vinOption}>
+                        {vinOption}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.serviceType && <p className="text-sm text-red-500">{errors.serviceType}</p>}
+                {errors.vin && <p className="text-sm text-red-500">{errors.vin}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="serviceStartDate">Service Start Date *</Label>
+                <Label htmlFor="softwareVersion">Software Version *</Label>
                 <Input
-                  id="serviceStartDate"
-                  type="date"
-                  value={serviceStartDate}
-                  onChange={(e) => setServiceStartDate(e.target.value)}
+                  id="softwareVersion"
+                  placeholder="v2025.09.1"
+                  value={softwareVersion}
+                  onChange={(e) => setSoftwareVersion(e.target.value)}
                 />
-                {errors.serviceStartDate && <p className="text-sm text-red-500">{errors.serviceStartDate}</p>}
+                {errors.softwareVersion && <p className="text-sm text-red-500">{errors.softwareVersion}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="odometerIn">Odometer IN *</Label>
+                <Input
+                  id="odometerIn"
+                  type="number"
+                  placeholder="10000"
+                  value={odometerIn}
+                  onChange={(e) => setOdometerIn(e.target.value)}
+                />
+                {errors.odometerIn && <p className="text-sm text-red-500">{errors.odometerIn}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="serviceEndDate">Service End Date *</Label>
+                <Label htmlFor="odometerOut">Odometer OUT *</Label>
                 <Input
-                  id="serviceEndDate"
-                  type="date"
-                  value={serviceEndDate}
-                  onChange={(e) => setServiceEndDate(e.target.value)}
+                  id="odometerOut"
+                  type="number"
+                  placeholder="10250"
+                  value={odometerOut}
+                  onChange={(e) => setOdometerOut(e.target.value)}
                 />
-                {errors.serviceEndDate && <p className="text-sm text-red-500">{errors.serviceEndDate}</p>}
+                {errors.odometerOut && <p className="text-sm text-red-500">{errors.odometerOut}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Service Description *</Label>
+              <Label htmlFor="faultCodes">Fault Codes & Diagnostic Codes</Label>
               <Textarea
-                id="description"
-                placeholder="Describe the service performed, issues found, and work completed..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
+                id="faultCodes"
+                placeholder="Enter fault codes (e.g., P0300, B1234, U0101)"
+                value={faultCodes}
+                onChange={(e) => setFaultCodes(e.target.value)}
+                rows={3}
               />
-              {errors.description && <p className="text-sm text-red-500">{errors.description}</p>}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Parts Used */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Parts Used
-              </div>
-              <Button onClick={addPart} size="sm" variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Part
-              </Button>
-            </CardTitle>
-            <CardDescription>List all parts used in this service</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {parts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No parts added yet</p>
-                <p className="text-sm">Add parts manually or upload an Excel file</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Part Number</TableHead>
-                      <TableHead>Description</TableHead>
-                      <TableHead>Quantity</TableHead>
-                      <TableHead>Unit Price</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {parts.map((part, index) => (
-                      <TableRow key={part.id}>
-                        <TableCell>
-                          <Select
-                            value={part.partNumber}
-                            onValueChange={(value) => updatePart(part.id, "partNumber", value)}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select part" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {partsCatalog.map((catalogPart) => (
-                                <SelectItem key={catalogPart.number} value={catalogPart.number}>
-                                  {catalogPart.number}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          {errors[`part-${index}-number`] && (
-                            <p className="text-xs text-red-500 mt-1">{errors[`part-${index}-number`]}</p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            value={part.description}
-                            onChange={(e) => updatePart(part.id, "description", e.target.value)}
-                            placeholder="Part description"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={part.quantity}
-                            onChange={(e) => updatePart(part.id, "quantity", Number.parseInt(e.target.value) || 0)}
-                            className="w-20"
-                          />
-                          {errors[`part-${index}-quantity`] && (
-                            <p className="text-xs text-red-500 mt-1">{errors[`part-${index}-quantity`]}</p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={part.unitPrice}
-                            onChange={(e) => updatePart(part.id, "unitPrice", Number.parseFloat(e.target.value) || 0)}
-                            className="w-24"
-                          />
-                          {errors[`part-${index}-price`] && (
-                            <p className="text-xs text-red-500 mt-1">{errors[`part-${index}-price`]}</p>
-                          )}
-                        </TableCell>
-                        <TableCell>${(part.quantity * part.unitPrice).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Button
-                            onClick={() => removePart(part.id)}
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                <div className="flex justify-end">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Total Parts Cost</p>
-                    <p className="text-2xl font-bold">${calculateTotal().toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {errors.parts && <p className="text-sm text-red-500 mt-2">{errors.parts}</p>}
-          </CardContent>
-        </Card>
-
-        {/* Excel Upload */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Excel Upload
-            </CardTitle>
-            <CardDescription>Upload parts list using our Excel template format</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Button onClick={downloadTemplate} variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download Template
-              </Button>
-              <span className="text-sm text-muted-foreground">Use our template to ensure proper formatting</span>
             </div>
 
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
-              <div className="text-center">
-                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <div className="space-y-2">
-                  <Label htmlFor="excel-upload" className="cursor-pointer">
-                    <span className="text-sm font-medium">Click to upload Excel file</span>
+            <div className="space-y-2">
+              <Label htmlFor="diagnosticFile">Diagnostic Report (Optional)</Label>
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                <div className="text-center">
+                  <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                  <Label htmlFor="diagnosticFile" className="cursor-pointer">
+                    <span className="text-sm font-medium">Upload PDF or Image</span>
                     <Input
-                      id="excel-upload"
+                      id="diagnosticFile"
                       type="file"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileUpload}
+                      accept=".pdf,image/*"
+                      onChange={handleDiagnosticFileUpload}
                       className="hidden"
                     />
                   </Label>
-                  <p className="text-xs text-muted-foreground">Supports .xlsx and .xls files up to 5MB</p>
+                  <p className="text-xs text-muted-foreground mt-1">PDF or image files only</p>
                 </div>
+
+                {diagnosticFile && (
+                  <div className="mt-3 p-2 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-green-800">{diagnosticFile.name}</span>
+                      <Button
+                        onClick={() => setDiagnosticFile(null)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {errors.diagnosticFile && <p className="text-sm text-red-500 mt-2">{errors.diagnosticFile}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="repairStartDate">Repair Start Date *</Label>
+                <Input
+                  id="repairStartDate"
+                  type="date"
+                  value={repairStartDate}
+                  onChange={(e) => setRepairStartDate(e.target.value)}
+                />
+                {errors.repairStartDate && <p className="text-sm text-red-500">{errors.repairStartDate}</p>}
               </div>
 
-              {uploadedFile && (
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-800">{uploadedFile.name}</span>
-                    </div>
-                    <Button
-                      onClick={() => setUploadedFile(null)}
-                      size="sm"
-                      variant="ghost"
-                      className="text-green-600 hover:text-green-800"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-green-600 mt-1">
-                    File uploaded successfully. Parts have been populated below.
-                  </p>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="repairEndDate">Repair End Date *</Label>
+                <Input
+                  id="repairEndDate"
+                  type="date"
+                  value={repairEndDate}
+                  onChange={(e) => setRepairEndDate(e.target.value)}
+                />
+                {errors.repairEndDate && <p className="text-sm text-red-500">{errors.repairEndDate}</p>}
+              </div>
+            </div>
 
-              {errors.file && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
-                    <span className="text-sm text-red-800">{errors.file}</span>
-                  </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="mobileService"
+                checked={mobileService}
+                onCheckedChange={(checked) => setMobileService(checked as boolean)}
+              />
+              <Label htmlFor="mobileService">Mobile Service</Label>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="signatureFile">Customer Acknowledgement</Label>
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6">
+                <div className="text-center">
+                  <PenTool className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <Label htmlFor="signatureFile" className="cursor-pointer">
+                    <span className="text-sm font-medium">Upload Signature</span>
+                    <Input
+                      id="signatureFile"
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={handleSignatureFileUpload}
+                      className="hidden"
+                    />
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-1">Image or PDF files only</p>
                 </div>
-              )}
+
+                {signatureFile && (
+                  <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium text-green-800">{signatureFile.name}</span>
+                      </div>
+                      <Button
+                        onClick={() => setSignatureFile(null)}
+                        size="sm"
+                        variant="ghost"
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {errors.signatureFile && (
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-red-600" />
+                      <span className="text-sm text-red-800">{errors.signatureFile}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Claim Type Selection</CardTitle>
+            <CardDescription>Select the appropriate claim type for this repair order</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {errors.claimType && <p className="text-sm text-red-500">{errors.claimType}</p>}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant={claimType === "claims-eligible" ? "default" : "outline"}
+                onClick={() => handleClaimTypeSelect("claims-eligible")}
+                className="h-auto p-4 flex flex-col items-start"
+              >
+                <span className="font-medium">Claims Eligible</span>
+                <span className="text-sm text-muted-foreground mt-1">
+                  Repair covered under warranty or service campaign
+                </span>
+              </Button>
+
+              <Button
+                variant={claimType === "non-claims-eligible" ? "default" : "outline"}
+                onClick={() => handleClaimTypeSelect("non-claims-eligible")}
+                className="h-auto p-4 flex flex-col items-start"
+              >
+                <span className="font-medium">Non-Claims Eligible</span>
+                <span className="text-sm text-muted-foreground mt-1">Customer pay or out-of-warranty repair</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {claimType === "claims-eligible" && (
+          <Collapsible open={isClaimsEligibleOpen} onOpenChange={setIsClaimsEligibleOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-5 w-5" />
+                      Claims Eligible Details
+                    </div>
+                    {isClaimsEligibleOpen ? <ChevronDown className="h-5 w-5" /> : <ChevronRight className="h-5 w-5" />}
+                  </CardTitle>
+                  <CardDescription>Job codes, parts, labor, and repair details for warranty claims</CardDescription>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="jobCode">Job Code *</Label>
+                    <Select value={jobCode} onValueChange={setJobCode}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select job code" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {jobCodeOptions.map((code) => (
+                          <SelectItem key={code} value={code}>
+                            {code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.jobCode && <p className="text-sm text-red-500">{errors.jobCode}</p>}
+                  </div>
+
+                  <PartsSection />
+                  <LaborSection />
+
+                  <div>
+                    <h4 className="font-medium mb-4">Repair Details (3C's)</h4>
+                    <RepairDetailsSection />
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
+
+        {claimType === "non-claims-eligible" && (
+          <Collapsible open={isNonClaimsEligibleOpen} onOpenChange={setIsNonClaimsEligibleOpen}>
+            <Card>
+              <CollapsibleTrigger asChild>
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="h-5 w-5" />
+                      Non-Claims Eligible Details
+                    </div>
+                    {isNonClaimsEligibleOpen ? (
+                      <ChevronDown className="h-5 w-5" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5" />
+                    )}
+                  </CardTitle>
+                  <CardDescription>Parts, labor, and repair details for customer pay repairs</CardDescription>
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-6">
+                  <PartsSection />
+                  <LaborSection />
+
+                  <div>
+                    <h4 className="font-medium mb-4">Repair Details (3C's)</h4>
+                    <RepairDetailsSection />
+                  </div>
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
@@ -484,16 +708,31 @@ export default function RecordROPage() {
               <h4 className="font-medium mb-2">RO Summary</h4>
               <div className="space-y-1 text-sm">
                 <p>
-                  <strong>Service Type:</strong> {serviceTypes.find((t) => t.value === serviceType)?.label}
+                  <strong>VIN:</strong> {vin}
                 </p>
                 <p>
-                  <strong>Service Period:</strong> {serviceStartDate} to {serviceEndDate}
+                  <strong>Software Version:</strong> {softwareVersion}
                 </p>
                 <p>
-                  <strong>Parts Count:</strong> {parts.length} items
+                  <strong>Odometer:</strong> {odometerIn} → {odometerOut}
                 </p>
                 <p>
-                  <strong>Total Cost:</strong> ${calculateTotal().toFixed(2)}
+                  <strong>Claim Type:</strong>{" "}
+                  {claimType === "claims-eligible" ? "Claims Eligible" : "Non-Claims Eligible"}
+                </p>
+                {claimType === "claims-eligible" && jobCode && (
+                  <p>
+                    <strong>Job Code:</strong> {jobCode}
+                  </p>
+                )}
+                <p>
+                  <strong>Parts:</strong> {selectedParts.length} items
+                </p>
+                <p>
+                  <strong>Labor Entries:</strong> {laborEntries.length} entries
+                </p>
+                <p>
+                  <strong>Mobile Service:</strong> {mobileService ? "Yes" : "No"}
                 </p>
               </div>
             </div>
@@ -501,14 +740,7 @@ export default function RecordROPage() {
               <Button variant="outline" onClick={() => setShowSuccessModal(false)}>
                 Close
               </Button>
-              <Button
-                onClick={() => {
-                  setShowSuccessModal(false)
-                  // Reset form for new RO
-                }}
-              >
-                Record Another RO
-              </Button>
+              <Button onClick={() => setShowSuccessModal(false)}>Record Another RO</Button>
             </div>
           </div>
         </DialogContent>
